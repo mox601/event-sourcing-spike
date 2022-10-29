@@ -1,53 +1,59 @@
 package fm.mox.eventsourcingspike.adapter.persistence.mongodb;
 
-import lombok.Value;
+import java.util.List;
+
+import org.bson.codecs.pojo.annotations.BsonCreator;
+import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
 
+@Builder(builderClassName = "Builder")
 @Value
+@AllArgsConstructor(onConstructor_ = {@BsonCreator})
+//@BsonDiscriminator not needed, apparently
 public class Event {
 
     /**
-     * concat N fields:
-     * - (if we use a collection in mongodb, no need for it) entityType
-     * - entityId
-     * - previousEventsCount
+     * concat N fields: - (if we use a collection in mongodb, no need for it) entityType - entityId - previousEventsCount
      */
     @Id
+    @BsonId
     String id;
 
     /**
-     * the amount of Events we expect to be previously stored on the db
-     * for this same entityType and entityId.
-     * It can be the same as the domain entity version,
-     * if the version is incremented every time a command is applied
-     * (regardless of the generated event count)
+     * the amount of Events we expect to be previously stored on the db for this same entityType and entityId. It can be the same as the
+     * domain entity version, if the version is incremented every time a command is applied (regardless of the generated event count)
      */
+    @BsonProperty("previousEventsCount")
     Long previousEventsCount;
 
     //TODO can be inferred from collection name? how to store this same class in different collections?
     //probably needs lower level mongodb APIs
+    @BsonProperty("entityType")
     String entityType;
     /**
      * domain entity id
      */
+    @BsonProperty("entityId")
     String entityId;
 
     /**
-     * used for optimistic concurrency
-     * expectedPreviousVersion = null to handle optimistic lock:
-     * we expect no other events on the db with the same id
-     * can be always set as null in the public factory method
-     * so that save() will trigger the concurrency check
+     * used for optimistic concurrency expectedPreviousVersion = null to handle optimistic lock: we expect no other events on the db with
+     * the same id can be always set as null in the public factory method so that save() will trigger the concurrency check
      */
     @Version
+    @BsonProperty("expectedPreviousVersion")
     Long expectedPreviousVersion;
 
     /**
      * domain events returned by handling a single domain command are json serialized and stored together
      */
+    @BsonProperty("serializedDomainEvents")
     List<String> serializedDomainEvents;
 
     /**
@@ -80,10 +86,10 @@ public class Event {
                               List<String> serializedDomainEvents,
                               Long previousEventsCount) {
         return new Event(entityType + "-" + entityId + "-" + previousEventsCount,
-                previousEventsCount,
-                entityType,
-                entityId,
-                null,
-                serializedDomainEvents);
+                         previousEventsCount,
+                         entityType,
+                         entityId,
+                         null,
+                         serializedDomainEvents);
     }
 }

@@ -1,8 +1,8 @@
 package fm.mox.eventsourcingspike.adapter.persistence.mongodb;
 
-import org.springframework.data.mongodb.repository.MongoRepository;
-
 import java.util.List;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface MongoEventRepository extends MongoRepository<Event, String> {
 

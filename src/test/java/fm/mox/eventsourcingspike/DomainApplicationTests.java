@@ -1,26 +1,40 @@
 package fm.mox.eventsourcingspike;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsPersistenceAdapter;
-import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsPersistenceAdapterImpl;
-import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
-import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
-import fm.mox.eventsourcingspike.domain.ADomainEntity;
-import fm.mox.eventsourcingspike.domain.ADomainEntityCreated;
-import fm.mox.eventsourcingspike.domain.ADomainEntityFactory;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsPersistenceAdapterImpl;
+import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
+import fm.mox.eventsourcingspike.adapter.persistence.ObjectMapperFactory;
+import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
+import fm.mox.eventsourcingspike.domain.Order;
+import fm.mox.eventsourcingspike.domain.OrderFactory;
+import fm.mox.eventsourcingspike.domain.DomainEvent;
+import lombok.extern.slf4j.Slf4j;
+
 @SpringBootTest
+@Slf4j
 class DomainApplicationTests {
 
     @Autowired
     private MongoEventRepository mongoEventRepository;
+    private DomainEventsPersistenceAdapterImpl domainEventsPersistenceAdapter;
+
+    @BeforeEach
+    void setUp() {
+
+        DomainEventsSerDe domainEventsSerDe = new DomainEventsSerDe(ObjectMapperFactory.build());
+        this.domainEventsPersistenceAdapter = new DomainEventsPersistenceAdapterImpl(
+                this.mongoEventRepository,
+                domainEventsSerDe
+        );
+    }
 
     @Test
     void contextLoadsEvent() {
@@ -30,45 +44,36 @@ class DomainApplicationTests {
         //TODO bimap from class to entityType
         String aDomainEntityType = "a-domain-entity";
         Map<String, Class<?>> stringClassHashMap = new HashMap<>();
-        stringClassHashMap.put(aDomainEntityType, ADomainEntity.class);
+        stringClassHashMap.put(aDomainEntityType, Order.class);
 
         //TODO reserve an id from a collection
 
-        ADomainEntity aDomainEntity = new ADomainEntity();
-        aDomainEntity.handle(new ADomainEntityCreated("1"));
+        Order order = new Order("1");
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        DomainEventsSerDe domainEventsSerDe = new DomainEventsSerDe(objectMapper);
-        DomainEventsPersistenceAdapter domainEventsPersistenceAdapter = new DomainEventsPersistenceAdapterImpl(
-                this.mongoEventRepository,
-                domainEventsSerDe
-        );
+
 
         //save domain events, get the id of the document stored on db
 
         String savedEventId = domainEventsPersistenceAdapter.save(
                 aDomainEntityType,
-                aDomainEntity.getId(),
-                aDomainEntity.getEvents(),
-                aDomainEntity.getVersion());
+                order.getId(),
+                order.getUncommittedEvents(),
+                order.getVersion());
 
-        System.out.println(savedEventId);
+        log.info(savedEventId);
 
         //read
-        List<ADomainEntityCreated> domainEvents = domainEventsPersistenceAdapter.findById(
+        List<DomainEvent> domainEvents = domainEventsPersistenceAdapter.findById(
                 aDomainEntityType,
                 "1");
-        System.out.println(domainEvents);
+        log.info(domainEvents.toString());
 
-        ADomainEntity fromEvents = new ADomainEntityFactory().from(domainEvents);
+        Order fromEvents = new OrderFactory().from(domainEvents);
 
-        // TODO implement a projection (build a view) check idempotency when consuming changes
-        // https://github.com/mongodb-developer/java-quick-start
         // TODO implement a process manager
         // TODO implement snapshotting
     }
 
     //domain event repository
-
 
 }

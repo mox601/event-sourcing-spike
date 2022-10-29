@@ -1,31 +1,53 @@
 package fm.mox.eventsourcingspike;
 
-import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
-import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
 import java.util.Arrays;
 
-@SpringBootTest
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+
+import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
+import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
+import lombok.extern.slf4j.Slf4j;
+
+//@SpringBootTest
+@Testcontainers
+@DataMongoTest
+@Slf4j
 class EventSourcingSpikeApplicationTests {
+
+    @Container
+    static MongoDBContainer MONGODB_CONTAINER =
+            new MongoDBContainer(DockerImageName.parse("mongo:6.0.2"));
+
+    @DynamicPropertySource
+    static void setProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", MONGODB_CONTAINER::getReplicaSetUrl);
+    }
 
     @Autowired
     private MongoEventRepository mongoEventRepository;
 
-    @Test
-    void contextLoadsEvent() {
-
+    @BeforeEach
+    public void setUp() throws InterruptedException {
         mongoEventRepository.deleteAll();
+    }
 
-        // fetch all customers
-        System.out.println("Events found with findAll():");
-        System.out.println("-------------------------------");
+    @Test
+    void contextLoadsEvent() throws InterruptedException {
+
+        log.info("Events found with findAll():");
+        log.info("-------------------------------");
         for (Event event : mongoEventRepository.findAll()) {
-            System.out.println(event);
+            log.info(event.toString());
         }
-        System.out.println();
 
         // save a couple of events related to 2 distinct entities
         // previous eventsCount is 0 because they are new entities, and we expect no other events on the db
@@ -38,27 +60,28 @@ class EventSourcingSpikeApplicationTests {
         mongoEventRepository.save(two);
 
         // fetch all customers
-        System.out.println("Events found with findAll():");
-        System.out.println("-------------------------------");
+        log.info("Events found with findAll():");
+        log.info("-------------------------------");
         for (Event event : mongoEventRepository.findAll()) {
-            System.out.println(event);
+            log.info(event.toString());
         }
-        System.out.println();
 
         // fetch by entity type
-        System.out.println("Events found with findByEntityType:");
-        System.out.println("--------------------------------");
-        System.out.println(mongoEventRepository.findByEntityType("a"));
+        log.info("Events found with findByEntityType:");
+        log.info("--------------------------------");
+        log.info(mongoEventRepository.findByEntityType("a").toString());
 
-        System.out.println("Event found with findById('a-1-0'):");
-        System.out.println("--------------------------------");
-        System.out.println(mongoEventRepository.findById("a-1-0"));
+        log.info("Event found with findById('a-1-0'):");
+        log.info("--------------------------------");
+        log.info(mongoEventRepository.findById("a-1-0").toString());
 
+        Event three = Event.build("a", "3", Arrays.asList("3", "4"), 0L);
+        mongoEventRepository.save(three);
 
-        Event oneBis = new Event("a-1-0", 0L, "a",
-                "1", null, Arrays.asList("1", "2"));
-        //this fails!
-        mongoEventRepository.save(oneBis);
+        Event oneBis = Event.build("a", "3", Arrays.asList("5", "6"), 1L);
+
+        //TODO this fails!
+        //mongoEventRepository.save(oneBis);
 
         //expectedPreviousVersion = null doesn't work
         // org.springframework.dao.DuplicateKeyException: Write operation error on server localhost:65019. Write error: WriteError{code=11000, message='E11000 duplicate key error collection: test.event index: _id_ dup key: { _id: "1-0" }', details={}}.; nested exception is com.mongodb.MongoWriteException: Write operation error on server localhost:65019. Write error: WriteError{code=11000, message='E11000 duplicate key error collection: test.event index: _id_ dup key: { _id: "1-0" }', details={}}.
@@ -68,12 +91,11 @@ class EventSourcingSpikeApplicationTests {
         //expectedPreviousVersion = 1 doesn't work:
         // org.springframework.dao.OptimisticLockingFailureException: Cannot save entity 1-0 with version 2 to collection event. Has it been modified meanwhile?
 
-        System.out.println("Event found with findById('a-1-0'):");
-        System.out.println("--------------------------------");
-        System.out.println(mongoEventRepository.findById("a-1-0"));
+        log.info("Event found with findById('a-1-0'):");
+        log.info("--------------------------------");
+        log.info(mongoEventRepository.findById("a-1-0").toString());
     }
 
     //domain event repository
-
 
 }

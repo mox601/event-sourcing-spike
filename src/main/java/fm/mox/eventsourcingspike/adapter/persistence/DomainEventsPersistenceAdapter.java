@@ -1,14 +1,14 @@
 package fm.mox.eventsourcingspike.adapter.persistence;
 
-import fm.mox.eventsourcingspike.domain.ADomainEntityCreated;
-
 import java.util.List;
+
+import fm.mox.eventsourcingspike.domain.DomainEvent;
 
 public interface DomainEventsPersistenceAdapter {
 
-    List<ADomainEntityCreated> findById(String entityType, String entityId);
+    List<DomainEvent> findById(String entityType, String entityId);
 
     // TODO what is best to return?
-    String save(String entityType, String id, List<ADomainEntityCreated> events, Long version);
+    String save(String entityType, String id, List<DomainEvent> events, Long version);
 
 }
