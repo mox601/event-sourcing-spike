@@ -1,17 +1,19 @@
 package fm.mox.eventsourcingspike;
 
-import static fm.mox.eventsourcingspike.projection.ChangeStreamDocumentConsumer.PROJECTION_ID;
+import static fm.mox.eventsourcingspike.adapter.persistence.MongoDatabaseUtils.printAllEvents;
+import static fm.mox.eventsourcingspike.adapter.persistence.MongoDatabaseUtils.printCollectionNames;
+import static fm.mox.eventsourcingspike.projection.OrderStatusProjectionUpdater.PROJECTION_ID;
 import static fm.mox.eventsourcingspike.view.OrdersCountViewUpdater.VIEW_ID;
 import static java.util.Arrays.asList;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
@@ -22,7 +24,6 @@ import org.testcontainers.utility.DockerImageName;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 
 import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.ObjectMapperFactory;
@@ -30,10 +31,10 @@ import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
 import fm.mox.eventsourcingspike.domain.OrderPlaced;
 import fm.mox.eventsourcingspike.projection.OrdersCountProjection;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderId;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderIdsRepository;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerState;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerStateRepository;
+import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatus;
+import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatusRepository;
 import fm.mox.eventsourcingspike.view.persistence.mongodb.OrdersCount;
 import fm.mox.eventsourcingspike.view.persistence.mongodb.OrdersCountRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +66,7 @@ class EventSourcingSpikeApplicationThreeTests {
     @Autowired
     private OrdersCountRepository ordersCountRepository;
     @Autowired
-    private OrderIdsRepository orderIdsRepository;
+    private OrderStatusRepository orderStatusRepository;
 
     @Autowired
     private MongoClient mongoClient;
@@ -80,7 +81,7 @@ class EventSourcingSpikeApplicationThreeTests {
         this.mongoEventRepository.deleteAll();
         this.changeStreamConsumerStateRepository.deleteAll();
         this.ordersCountRepository.deleteAll();
-        this.orderIdsRepository.deleteAll();
+        this.orderStatusRepository.deleteAll();
 
         this.domainEventsSerDe = new DomainEventsSerDe(ObjectMapperFactory.build());
     }
@@ -112,16 +113,16 @@ class EventSourcingSpikeApplicationThreeTests {
         List<String> serializedDomainEventsTwo = asList(buildAndSerializeDomainEvent("3"), buildAndSerializeDomainEvent("4"));
         Event two = Event.build("a", "2", serializedDomainEventsTwo, 0L);
 
-        printCollectionNames();
-        printAllEvents();
+        printCollectionNames(this.testDatabase);
+        printAllEvents(this.events);
 
-        MongoCollection<OrderId> domainEntityItems =
-                this.testDatabase.getCollection("domainEntityItem", OrderId.class);
+        MongoCollection<OrderStatus> domainEntityItems =
+                this.testDatabase.getCollection("domainEntityItem", OrderStatus.class);
 
         OrdersCountProjection ordersCountProjection =
                 new OrdersCountProjection(this.events,
                                           domainEntityItems,
-                                          this.orderIdsRepository,
+                                          this.orderStatusRepository,
                                           this.ordersCountRepository,
                                           this.changeStreamConsumerStateRepository,
                                           this.domainEventsSerDe);
@@ -158,8 +159,8 @@ class EventSourcingSpikeApplicationThreeTests {
     }
 
     private void printAllCollections() {
-        printCollectionNames();
-        printAllEvents();
+        printCollectionNames(this.testDatabase);
+        printAllEvents(this.events);
         printState(PROJECTION_ID);
         printView(VIEW_ID);
     }
@@ -177,21 +178,6 @@ class EventSourcingSpikeApplicationThreeTests {
     private void printView(String viewId) {
         OrdersCount byId = this.ordersCountRepository.findById(viewId).orElse(OrdersCount.NULL);
         log.info("view state: " + byId);
-    }
-
-    private void printAllEvents() {
-        this.events.find().forEach(printEvent());
-    }
-
-    private void printCollectionNames() {
-        MongoIterable<String> collectionNames = this.testDatabase.listCollectionNames();
-        for (String string : collectionNames) {
-            log.info("collection: " + string);
-        }
-    }
-
-    private Consumer<Event> printEvent() {
-        return x -> log.info("event: " + x);
     }
 
 }

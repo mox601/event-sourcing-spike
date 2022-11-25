@@ -16,13 +16,13 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import fm.mox.eventsourcingspike.domain.Order;
 import fm.mox.eventsourcingspike.domain.DomainEvent;
+import fm.mox.eventsourcingspike.domain.Order;
 import fm.mox.eventsourcingspike.domain.OrderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class OrderRepositoryTest {
+public class OrderRepositoryTest {
 
     private OrderRepository underTest;
     private Map<String, Map<Long, List<DomainEvent>>> map;
@@ -61,15 +61,12 @@ class OrderRepositoryTest {
         } catch (Throwable e) {
             assertNotNull(e);
         }
-        
-
-
 
         // TODO call method that alters the domain event producing new events
 
     }
 
-    private static class InMemoryDomainEventsPersistenceAdapter implements DomainEventsPersistenceAdapter {
+    public static class InMemoryDomainEventsPersistenceAdapter implements DomainEventsPersistenceAdapter {
 
         private final Map<String, Map<Long, List<DomainEvent>>> map;
 

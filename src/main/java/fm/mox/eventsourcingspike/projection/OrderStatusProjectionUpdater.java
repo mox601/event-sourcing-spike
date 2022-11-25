@@ -2,8 +2,7 @@ package fm.mox.eventsourcingspike.projection;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 import org.bson.BsonDocument;
 import org.bson.BsonString;
@@ -16,10 +15,10 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
 import fm.mox.eventsourcingspike.domain.OrderPlaced;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderId;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderIdsRepository;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerState;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerStateRepository;
+import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatus;
+import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatusRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -27,23 +26,23 @@ import lombok.extern.slf4j.Slf4j;
  * view
  */
 @Slf4j
-public class ChangeStreamDocumentConsumer implements Runnable, Closeable {
+public class OrderStatusProjectionUpdater implements Runnable, Closeable {
 
-    public static final String PROJECTION_ID = "fixed";
+    public static final String PROJECTION_ID = "order-status-projection-updater";
     volatile boolean shouldRun;
     private final MongoCollection<Event> events;
     private final DomainEventsSerDe domainEventsSerDe;
     private final ChangeStreamConsumerStateRepository changeStreamConsumerStateRepository;
-    private final OrderIdsRepository orderIdsRepository;
+    private final OrderStatusRepository orderStatusRepository;
 
-    public ChangeStreamDocumentConsumer(MongoCollection<Event> events,
+    public OrderStatusProjectionUpdater(MongoCollection<Event> events,
                                         DomainEventsSerDe domainEventsSerDe,
                                         ChangeStreamConsumerStateRepository changeStreamConsumerStateRepository,
-                                        OrderIdsRepository orderIdsRepository) {
+                                        OrderStatusRepository orderStatusRepository) {
         this.events = events;
         this.domainEventsSerDe = domainEventsSerDe;
         this.changeStreamConsumerStateRepository = changeStreamConsumerStateRepository;
-        this.orderIdsRepository = orderIdsRepository;
+        this.orderStatusRepository = orderStatusRepository;
         this.shouldRun = true;
     }
 
@@ -62,38 +61,38 @@ public class ChangeStreamDocumentConsumer implements Runnable, Closeable {
             while (this.shouldRun && iterator.hasNext()) {
                 ChangeStreamDocument<Event> eventChangeStreamDocument = iterator.next();
                 logResumeToken(eventChangeStreamDocument);
-                String resumeToken = resumeTokenFrom(eventChangeStreamDocument);
                 log.info("csd: " + eventChangeStreamDocument);
                 //extract
                 Event fullDocument = eventChangeStreamDocument.getFullDocument();
                 //deserialize
                 //TODO catch exceptions for deserialization and when writing state
                 if (fullDocument != null) {
-                    List<OrderPlaced> orderPlacedEvents = fullDocument
-                            .getSerializedDomainEvents()
-                            .stream()
-                            .map(this.domainEventsSerDe::deserialize)
-                            .filter(e -> e instanceof OrderPlaced)
-                            .map(e -> (OrderPlaced) e)
-                            .toList();
-
-                    log.info("TODO process these orderPlacedEvents: " + orderPlacedEvents);
-
-                    List<OrderId> orderIds = new ArrayList<>();
-                    for (OrderPlaced orderPlaced : orderPlacedEvents) {
+                    Optional<OrderPlaced> orderPlacedOpt = findFirstOrderPlaced(fullDocument);
+                    if (orderPlacedOpt.isPresent()) {
+                        OrderPlaced orderPlaced = orderPlacedOpt.get();
                         log.info("processing orderPlaced: " + orderPlaced);
-                        orderIds.add(new OrderId(orderPlaced.getEntityId()));
+                        OrderStatus orderStatus = new OrderStatus(orderPlaced.getEntityId(), orderPlaced.getStatus());
+                        // we assume only 1 thread is consuming the change stream to update this projection
+                        // TODO process "idempotently" each message, e.g. writing to a collection to build the view
+                        // TODO what happens if it was already there?
+                        this.orderStatusRepository.save(orderStatus);
                     }
-                    // we assume only 1 thread is consuming the change stream to update this projection
-                    // TODO process "idempotently" each message, e.g. writing to a collection to build the view
-                    // TODO what happens if it was already there?
-                    this.orderIdsRepository.saveAll(orderIds);
                 }
                 saveResumeTokenAsState(eventChangeStreamDocument);
             }
             log.info("stopped");
         }
         log.info("watch iterator closed");
+    }
+
+    private Optional<OrderPlaced> findFirstOrderPlaced(Event fullDocument) {
+        return fullDocument
+                .getSerializedDomainEvents()
+                .stream()
+                .map(this.domainEventsSerDe::deserialize)
+                .filter(e -> e instanceof OrderPlaced)
+                .map(e -> (OrderPlaced) e)
+                .findFirst();
     }
 
     // TODO call it when the app is stopped

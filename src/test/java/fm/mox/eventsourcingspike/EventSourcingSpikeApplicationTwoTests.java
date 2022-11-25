@@ -35,10 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 class EventSourcingSpikeApplicationTwoTests {
 
     @Container
-    static MongoDBContainer MONGODB_CONTAINER =
-            new MongoDBContainer(DockerImageName.parse("mongo:6.0.2"));
-
-    //private String replicaSetUrl;
+    static MongoDBContainer MONGODB_CONTAINER = new MongoDBContainer(DockerImageName.parse("mongo:6.0.2"));
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
@@ -53,8 +50,6 @@ class EventSourcingSpikeApplicationTwoTests {
 
     @BeforeEach
     public void setUp() throws InterruptedException {
-        log.info("heyyy");
-        String replicaSetUrl = MONGODB_CONTAINER.getReplicaSetUrl();
         mongoEventRepository.deleteAll();
     }
 
@@ -111,13 +106,13 @@ class EventSourcingSpikeApplicationTwoTests {
 
     }
 
-    private void printEvents(MongoDatabase test) {
-        MongoCollection<Event> events = test.getCollection("event", Event.class);
+    private void printEvents(MongoDatabase mongoDatabase) {
+        MongoCollection<Event> events = mongoDatabase.getCollection("event", Event.class);
         events.find().forEach(printEvent());
     }
 
-    private void printCollectionNames(MongoDatabase test) {
-        MongoIterable<String> collectionNames = test.listCollectionNames();
+    private void printCollectionNames(MongoDatabase mongoDatabase) {
+        MongoIterable<String> collectionNames = mongoDatabase.listCollectionNames();
         for (String string : collectionNames) {
             log.info("collection: " + string);
         }

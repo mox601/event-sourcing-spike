@@ -4,4 +4,7 @@ import lombok.Value;
 
 @Value
 public class PlaceOrder {
+
+    String id;
+
 }

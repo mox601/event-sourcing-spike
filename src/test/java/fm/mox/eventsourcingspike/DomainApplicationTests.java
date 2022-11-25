@@ -9,13 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsPersistenceAdapter;
 import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsPersistenceAdapterImpl;
 import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.ObjectMapperFactory;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
+import fm.mox.eventsourcingspike.domain.DomainEvent;
 import fm.mox.eventsourcingspike.domain.Order;
 import fm.mox.eventsourcingspike.domain.OrderFactory;
-import fm.mox.eventsourcingspike.domain.DomainEvent;
 import lombok.extern.slf4j.Slf4j;
 
 @SpringBootTest
@@ -24,7 +25,7 @@ class DomainApplicationTests {
 
     @Autowired
     private MongoEventRepository mongoEventRepository;
-    private DomainEventsPersistenceAdapterImpl domainEventsPersistenceAdapter;
+    private DomainEventsPersistenceAdapter domainEventsPersistenceAdapter;
 
     @BeforeEach
     void setUp() {
@@ -50,11 +51,9 @@ class DomainApplicationTests {
 
         Order order = new Order("1");
 
-
-
         //save domain events, get the id of the document stored on db
 
-        String savedEventId = domainEventsPersistenceAdapter.save(
+        String savedEventId = this.domainEventsPersistenceAdapter.save(
                 aDomainEntityType,
                 order.getId(),
                 order.getUncommittedEvents(),
@@ -63,7 +62,7 @@ class DomainApplicationTests {
         log.info(savedEventId);
 
         //read
-        List<DomainEvent> domainEvents = domainEventsPersistenceAdapter.findById(
+        List<DomainEvent> domainEvents = this.domainEventsPersistenceAdapter.findById(
                 aDomainEntityType,
                 "1");
         log.info(domainEvents.toString());

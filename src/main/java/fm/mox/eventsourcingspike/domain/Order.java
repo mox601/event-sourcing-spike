@@ -17,12 +17,10 @@ public class Order implements DomainEntity {
     private String status;
 
     private Long version;
-    private final List<DomainEvent> events;
 
     private final List<DomainEvent> uncommittedEvents;
 
     public Order() {
-        this.events = new ArrayList<>();
         this.uncommittedEvents = new ArrayList<>();
         this.version = -1L;
     }
@@ -40,6 +38,7 @@ public class Order implements DomainEntity {
     // apply methods receive the method and alter the fields
 
     public void loadFrom(List<DomainEvent> domainEvents) {
+        //TODO add guard to make it only work on "empty" instances
         for (DomainEvent domainEvent : domainEvents) {
             apply(domainEvent);
         }

@@ -15,14 +15,16 @@ import lombok.Value;
 //@BsonDiscriminator not needed, apparently
 public class OrdersCount {
 
-    public static final OrdersCount NULL = new OrdersCount("-1", -1L);
+    public static final OrdersCount NULL = new OrdersCount("-1", -1L, -1L);
 
     @Id
     @BsonId
     String id;
 
-    @BsonProperty("count")
-    Long count;
+    @BsonProperty("pendingCount")
+    Long pendingCount;
 
-    // TODO make it more interesting, e.g. with createdCount and canceledCount
+    @BsonProperty("readyToShipCount")
+    Long readyToShipCount;
+
 }

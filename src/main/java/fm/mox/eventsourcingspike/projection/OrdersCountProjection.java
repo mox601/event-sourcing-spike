@@ -12,28 +12,31 @@ import com.mongodb.client.MongoCollection;
 import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerStateRepository;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderId;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderIdsRepository;
+import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatus;
+import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatusRepository;
 import fm.mox.eventsourcingspike.view.OrdersCountViewUpdater;
 import fm.mox.eventsourcingspike.view.persistence.mongodb.OrdersCountRepository;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Starts 2 processes that make the orders count view possible
+ */
 @Slf4j
 public class OrdersCountProjection implements Closeable {
 
     private final MongoCollection<Event> events;
-    private final MongoCollection<OrderId> domainEntities;
+    private final MongoCollection<OrderStatus> domainEntities;
     private final OrdersCountRepository ordersCountRepository;
     private final ChangeStreamConsumerStateRepository changeStreamConsumerStateRepository;
     private final DomainEventsSerDe domainEventsSerDe;
     private final ExecutorService executorService;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final OrderIdsRepository orderIdsRepository;
-    private ChangeStreamDocumentConsumer changeStreamDocumentConsumer;
+    private final OrderStatusRepository orderStatusRepository;
+    private OrderStatusProjectionUpdater orderStatusProjectionUpdater;
 
     public OrdersCountProjection(MongoCollection<Event> events,
-                                 MongoCollection<OrderId> orderIds,
-                                 OrderIdsRepository orderIdsRepository,
+                                 MongoCollection<OrderStatus> orderIds,
+                                 OrderStatusRepository orderStatusRepository,
                                  OrdersCountRepository ordersCountRepository,
                                  ChangeStreamConsumerStateRepository changeStreamConsumerStateRepository,
                                  DomainEventsSerDe domainEventsSerDe) {
@@ -42,7 +45,7 @@ public class OrdersCountProjection implements Closeable {
         this.changeStreamConsumerStateRepository = changeStreamConsumerStateRepository;
         this.domainEventsSerDe = domainEventsSerDe;
         this.domainEntities = orderIds;
-        this.orderIdsRepository = orderIdsRepository;
+        this.orderStatusRepository = orderStatusRepository;
         this.executorService = Executors.newSingleThreadExecutor();
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     }
@@ -51,11 +54,11 @@ public class OrdersCountProjection implements Closeable {
         // 1 thread consumes change stream and updates both
         // - the temporary collection domainEntityItemRepository
         // - the current status of stream with the last resumeToken processed in stateRepository
-        this.changeStreamDocumentConsumer = new ChangeStreamDocumentConsumer(this.events,
+        this.orderStatusProjectionUpdater = new OrderStatusProjectionUpdater(this.events,
                                                                              this.domainEventsSerDe,
                                                                              this.changeStreamConsumerStateRepository,
-                                                                             this.orderIdsRepository);
-        this.executorService.execute(this.changeStreamDocumentConsumer);
+                                                                             this.orderStatusRepository);
+        this.executorService.execute(this.orderStatusProjectionUpdater);
 
         // another thread runs every N seconds to
         // - read from the temporary table domainEntities
@@ -72,7 +75,7 @@ public class OrdersCountProjection implements Closeable {
     //TODO stop the consumer when needed
     @Override
     public void close() throws IOException {
-        this.changeStreamDocumentConsumer.close();
+        this.orderStatusProjectionUpdater.close();
         this.executorService.shutdownNow();
         this.scheduledExecutorService.shutdownNow();
     }

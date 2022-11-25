@@ -20,7 +20,8 @@ public class MongoConfig {
     @Value("${spring.data.mongodb.uri}")
     private String mongodbUri;
 
-    @Bean
+    //TODO reenable when running mongo tests
+    //@Bean
     public MongoClient mongoClient() {
         CodecRegistry pojoCodecRegistry = fromProviders(PojoCodecProvider.builder().automatic(true).build());
         CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), pojoCodecRegistry);
