@@ -12,14 +12,15 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 
-import fm.mox.eventsourcingspike.OrderProcessManager;
+import fm.mox.eventsourcingspike.adapter.persistence.OrderProcessManagerRepository;
+import fm.mox.eventsourcingspike.domain.processmanager.OrderProcessManager;
 import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
+import fm.mox.eventsourcingspike.commands.BillOrder;
+import fm.mox.eventsourcingspike.commands.handlers.CommandHandler;
 import fm.mox.eventsourcingspike.domain.OrderPlaced;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerState;
 import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerStateRepository;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatus;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatusRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -34,16 +35,20 @@ public class OrderPlacedEventListener implements Runnable, Closeable {
     private final MongoCollection<Event> events;
     private final DomainEventsSerDe domainEventsSerDe;
     private final ChangeStreamConsumerStateRepository changeStreamConsumerStateRepository;
-    private final OrderStatusRepository orderStatusRepository;
+
+    private final OrderProcessManagerRepository orderProcessManagerRepository;
+    private final CommandHandler<BillOrder> billOrderCommandHandler;
 
     public OrderPlacedEventListener(MongoCollection<Event> events,
                                     DomainEventsSerDe domainEventsSerDe,
                                     ChangeStreamConsumerStateRepository changeStreamConsumerStateRepository,
-                                    OrderStatusRepository orderStatusRepository) {
+                                    OrderProcessManagerRepository orderProcessManagerRepository,
+                                    CommandHandler<BillOrder> billOrderHandler) {
         this.events = events;
         this.domainEventsSerDe = domainEventsSerDe;
         this.changeStreamConsumerStateRepository = changeStreamConsumerStateRepository;
-        this.orderStatusRepository = orderStatusRepository;
+        this.orderProcessManagerRepository = orderProcessManagerRepository;
+        this.billOrderCommandHandler = billOrderHandler;
         this.shouldRun = true;
     }
 
@@ -83,10 +88,15 @@ public class OrderPlacedEventListener implements Runnable, Closeable {
                         store the process manager events
                          */
 
-                        //TODO load from repository
-                        OrderProcessManager orderProcessManager = new OrderProcessManager();
-                        orderProcessManager.handle(orderPlaced);
-                        //save
+                        String entityId = orderPlaced.getEntityId();
+                        Optional<OrderProcessManager> byId = this.orderProcessManagerRepository.findById(entityId);
+                        OrderProcessManager foundOrCreated = byId.orElse(new OrderProcessManager(entityId));
+                        //TODO how to make it idempotent? we are doing 2 things:
+                        // the command handler changes another aggregate state
+                        // this PM is saved to its repository
+                        foundOrCreated.handle(this.billOrderCommandHandler, orderPlaced);
+                        this.orderProcessManagerRepository.save(foundOrCreated);
+
 
                         //OrderStatus orderStatus = new OrderStatus(orderPlaced.getEntityId(), orderPlaced.getStatus());
                         // we assume only 1 thread is consuming the change stream to update this projection

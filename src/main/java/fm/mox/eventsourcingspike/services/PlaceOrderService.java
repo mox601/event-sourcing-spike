@@ -22,6 +22,7 @@ public class PlaceOrderService {
         this.topic = topic;
     }
 
+    //TODO this could be sync, no need for Kafka?
     public void placeOrder(String placeOrderId) {
         String key = "alice"; // TODO what key to use?
         PlaceOrder record = new PlaceOrder("id-" + placeOrderId);
