@@ -18,41 +18,44 @@ public class KafkaPlaceOrderSubscriber {
 
     private final KafkaConsumer<String, PlaceOrder> consumer;
 
-    private final String placeOrderTopic;
+    private final String topic;
 
     private final CommandHandler<PlaceOrder> placeOrderCommandHandler;
     private volatile boolean isRunning;
 
     public KafkaPlaceOrderSubscriber(KafkaConsumer<String, PlaceOrder> consumer,
                                      CommandHandler<PlaceOrder> placeOrderCommandHandler,
-                                     String placeOrderTopic) {
+                                     String topic) {
         this.consumer = consumer;
+        //TODO could it manage and notify multiple handlers for the same command?
         this.placeOrderCommandHandler = placeOrderCommandHandler;
-        this.placeOrderTopic = placeOrderTopic;
+        this.topic = topic;
         this.isRunning = true;
     }
 
     public void start() {
         log.info("started");
 
-        this.consumer.subscribe(List.of(this.placeOrderTopic));
+        this.consumer.subscribe(List.of(this.topic));
 
         try {
             while (this.isRunning) {
                 ConsumerRecords<String, PlaceOrder> records = this.consumer.poll(Duration.ofMillis(100));
                 log.info("polled " + records.count());
-                for (ConsumerRecord<String, PlaceOrder> record : records) {
-                    String key = record.key();
-                    PlaceOrder value = record.value();
-                    //TODO deduplicate?
-                    //consume record
-                    try {
-                        this.placeOrderCommandHandler.handle(value);
-                    } catch (Exception e) {
-                        //TODO how to deal with exceptions?
+                if (records.count() > 0) {
+                    for (ConsumerRecord<String, PlaceOrder> record : records) {
+                        String key = record.key();
+                        PlaceOrder value = record.value();
+                        //TODO deduplicate?
+                        //consume record
+                        try {
+                            this.placeOrderCommandHandler.handle(value);
+                        } catch (Exception e) {
+                            //TODO how to deal with exceptions?
+                        }
+                        //TODO save bookmark? or is it handled by kafka?
+                        //record.offset();
                     }
-                    //TODO save bookmark? or is it handled by kafka?
-                    //record.offset();
                 }
             }
         } finally {
@@ -76,7 +79,7 @@ public class KafkaPlaceOrderSubscriber {
         consumerProps.put(KafkaJsonDeserializerConfig.JSON_VALUE_TYPE, PlaceOrder.class);
         //TODO how many consumers can we have?
         consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "place-order-consumer-1");
-        //TODO should it start from earliest?
+        //TODO should it start from earliest? or latest?
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         return new KafkaConsumer<>(consumerProps);
     }

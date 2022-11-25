@@ -17,9 +17,9 @@ public class PlaceOrderService {
     private final Producer<String, PlaceOrder> producer;
     private final String topic;
 
-    public PlaceOrderService(Producer<String, PlaceOrder> producer, String placeOrderTopic) {
+    public PlaceOrderService(Producer<String, PlaceOrder> producer, String topic) {
         this.producer = producer;
-        this.topic = placeOrderTopic;
+        this.topic = topic;
     }
 
     public void placeOrder(String placeOrderId) {

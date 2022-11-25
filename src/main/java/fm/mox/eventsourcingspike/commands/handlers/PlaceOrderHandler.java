@@ -17,6 +17,7 @@ public class PlaceOrderHandler implements CommandHandler<PlaceOrder> {
     public void handle(PlaceOrder command) {
         //TODO reserve next id from repository?
         //create aggregate
+        // TODO use a correlation id to trace all the changes related to the same command?
         Order order = new Order(command.getId());
         //save it
         this.orderRepository.save(order);

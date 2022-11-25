@@ -25,8 +25,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import fm.mox.eventsourcingspike.adapter.persistence.InMemoryDomainEventsPersistenceAdapter;
 import fm.mox.eventsourcingspike.adapter.persistence.OrderRepository;
-import fm.mox.eventsourcingspike.adapter.persistence.OrderRepositoryTest;
 import fm.mox.eventsourcingspike.commands.PlaceOrder;
 import fm.mox.eventsourcingspike.commands.handlers.KafkaPlaceOrderSubscriber;
 import fm.mox.eventsourcingspike.commands.handlers.PlaceOrderHandler;
@@ -65,7 +65,7 @@ class EventSourcingSpikeApplicationKafkaTests {
     @BeforeEach
     public void setUp() throws Exception {
 
-        String placeOrderTopic = "kafka-topic";
+        String placeOrderTopic = "place-order-topic";
 
         //create topic
         Properties topicCreatorProps = new Properties();
@@ -86,7 +86,7 @@ class EventSourcingSpikeApplicationKafkaTests {
         //create place order consumer
         this.map = new HashMap<>();
         OrderRepository orderRepository = new OrderRepository(
-                new OrderRepositoryTest.InMemoryDomainEventsPersistenceAdapter(this.map),
+                new InMemoryDomainEventsPersistenceAdapter(this.map),
                 new OrderFactory()
         );
         PlaceOrderHandler placeOrderCommandHandler = new PlaceOrderHandler(orderRepository);
