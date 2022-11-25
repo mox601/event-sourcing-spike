@@ -89,13 +89,12 @@ public class OrderPlacedEventListener implements Runnable, Closeable {
                          */
 
                         String entityId = orderPlaced.getEntityId();
-                        Optional<OrderProcessManager> byId = this.orderProcessManagerRepository.findById(entityId);
-                        OrderProcessManager foundOrCreated = byId.orElse(new OrderProcessManager(entityId));
-                        //TODO how to make it idempotent? we are doing 2 things:
+                        OrderProcessManager byId = new OrderProcessManager(entityId);
+                        //TODO how to make it idempotent? we are doing 2 things across datastores
                         // the command handler changes another aggregate state
                         // this PM is saved to its repository
-                        foundOrCreated.handle(this.billOrderCommandHandler, orderPlaced);
-                        this.orderProcessManagerRepository.save(foundOrCreated);
+                        byId.handle(this.billOrderCommandHandler, orderPlaced);
+                        this.orderProcessManagerRepository.save(byId);
 
 
                         //OrderStatus orderStatus = new OrderStatus(orderPlaced.getEntityId(), orderPlaced.getStatus());
