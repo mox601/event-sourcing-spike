@@ -26,13 +26,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import fm.mox.eventsourcingspike.adapter.persistence.InMemoryDomainEventsPersistenceAdapter;
-import fm.mox.eventsourcingspike.adapter.persistence.OrderRepository;
-import fm.mox.eventsourcingspike.commands.PlaceOrder;
-import fm.mox.eventsourcingspike.commands.handlers.KafkaPlaceOrderSubscriber;
-import fm.mox.eventsourcingspike.commands.handlers.PlaceOrderHandler;
 import fm.mox.eventsourcingspike.domain.DomainEvent;
-import fm.mox.eventsourcingspike.domain.OrderFactory;
-import fm.mox.eventsourcingspike.services.PlaceOrderService;
+import fm.mox.eventsourcingspike.orders.adapter.persistence.OrderRepository;
+import fm.mox.eventsourcingspike.orders.commands.PlaceOrder;
+import fm.mox.eventsourcingspike.orders.commands.handlers.KafkaPlaceOrderSubscriber;
+import fm.mox.eventsourcingspike.orders.commands.handlers.PlaceOrderHandler;
+import fm.mox.eventsourcingspike.orders.domain.OrderFactory;
+import fm.mox.eventsourcingspike.orders.services.PlaceOrderService;
 import lombok.extern.slf4j.Slf4j;
 
 @SpringBootTest

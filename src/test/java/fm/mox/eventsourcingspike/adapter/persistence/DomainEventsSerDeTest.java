@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fm.mox.eventsourcingspike.domain.OrderPlaced;
+import fm.mox.eventsourcingspike.orders.domain.OrderPlaced;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

@@ -15,8 +15,8 @@ import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.ObjectMapperFactory;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
 import fm.mox.eventsourcingspike.domain.DomainEvent;
-import fm.mox.eventsourcingspike.domain.Order;
-import fm.mox.eventsourcingspike.domain.OrderFactory;
+import fm.mox.eventsourcingspike.orders.domain.Order;
+import fm.mox.eventsourcingspike.orders.domain.OrderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @SpringBootTest

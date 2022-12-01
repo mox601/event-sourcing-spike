@@ -13,8 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import fm.mox.eventsourcingspike.domain.DomainEvent;
-import fm.mox.eventsourcingspike.domain.Order;
-import fm.mox.eventsourcingspike.domain.OrderFactory;
+import fm.mox.eventsourcingspike.orders.adapter.persistence.OrderRepository;
+import fm.mox.eventsourcingspike.orders.domain.Order;
+import fm.mox.eventsourcingspike.orders.domain.OrderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

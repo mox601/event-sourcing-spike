@@ -3,7 +3,7 @@ package fm.mox.eventsourcingspike.adapter.persistence;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 
-import fm.mox.eventsourcingspike.domain.OrderPlaced;
+import fm.mox.eventsourcingspike.orders.domain.OrderPlaced;
 
 public final class ObjectMapperFactory {
 
@@ -14,7 +14,7 @@ public final class ObjectMapperFactory {
     public static ObjectMapper build() {
         ObjectMapper objectMapper = new ObjectMapper();
         //one per event type
-        objectMapper.registerSubtypes(new NamedType(OrderPlaced.class, "a-domain-entity-created"));
+        objectMapper.registerSubtypes(new NamedType(OrderPlaced.class, "order-placed"));
         return objectMapper;
 
     }

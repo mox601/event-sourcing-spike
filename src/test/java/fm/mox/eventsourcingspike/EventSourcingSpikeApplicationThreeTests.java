@@ -2,8 +2,8 @@ package fm.mox.eventsourcingspike;
 
 import static fm.mox.eventsourcingspike.adapter.persistence.MongoDatabaseUtils.printAllEvents;
 import static fm.mox.eventsourcingspike.adapter.persistence.MongoDatabaseUtils.printCollectionNames;
-import static fm.mox.eventsourcingspike.projection.OrderStatusProjectionUpdater.PROJECTION_ID;
-import static fm.mox.eventsourcingspike.view.OrdersCountViewUpdater.VIEW_ID;
+import static fm.mox.eventsourcingspike.orders.projection.OrderStatusProjectionUpdater.PROJECTION_ID;
+import static fm.mox.eventsourcingspike.orders.view.OrdersCountViewUpdater.VIEW_ID;
 import static java.util.Arrays.asList;
 
 import java.util.List;
@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
@@ -29,14 +28,14 @@ import fm.mox.eventsourcingspike.adapter.persistence.DomainEventsSerDe;
 import fm.mox.eventsourcingspike.adapter.persistence.ObjectMapperFactory;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.Event;
 import fm.mox.eventsourcingspike.adapter.persistence.mongodb.MongoEventRepository;
-import fm.mox.eventsourcingspike.domain.OrderPlaced;
-import fm.mox.eventsourcingspike.projection.OrdersCountProjection;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerState;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.ChangeStreamConsumerStateRepository;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatus;
-import fm.mox.eventsourcingspike.projection.persistence.mongodb.OrderStatusRepository;
-import fm.mox.eventsourcingspike.view.persistence.mongodb.OrdersCount;
-import fm.mox.eventsourcingspike.view.persistence.mongodb.OrdersCountRepository;
+import fm.mox.eventsourcingspike.orders.domain.OrderPlaced;
+import fm.mox.eventsourcingspike.orders.projection.OrdersCountProjection;
+import fm.mox.eventsourcingspike.orders.projection.persistence.mongodb.ChangeStreamConsumerState;
+import fm.mox.eventsourcingspike.orders.projection.persistence.mongodb.ChangeStreamConsumerStateRepository;
+import fm.mox.eventsourcingspike.orders.projection.persistence.mongodb.OrderStatus;
+import fm.mox.eventsourcingspike.orders.projection.persistence.mongodb.OrderStatusRepository;
+import fm.mox.eventsourcingspike.orders.view.persistence.mongodb.OrdersCount;
+import fm.mox.eventsourcingspike.orders.view.persistence.mongodb.OrdersCountRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @SpringBootTest
